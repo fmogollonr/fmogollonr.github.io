@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Uploading using WCF REST API</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript">
+
+        function xmlToJson(xml) {
+	
+	    // Create the return object
+	    var obj = {};
+
+	    if (xml.nodeType == 1) { // element
+		    // do attributes
+		    if (xml.attributes.length > 0) {
+		    obj["@attributes"] = {};
+			    for (var j = 0; j < xml.attributes.length; j++) {
+				    var attribute = xml.attributes.item(j);
+				    obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+			    }
+		    }
+	    } else if (xml.nodeType == 3) { // text
+		    obj = xml.nodeValue;
+	    }
+
+	    // do children
+	    if (xml.hasChildNodes()) {
+		    for(var i = 0; i < xml.childNodes.length; i++) {
+			    var item = xml.childNodes.item(i);
+			    var nodeName = item.nodeName;
+			    if (typeof(obj[nodeName]) == "undefined") {
+				    obj[nodeName] = xmlToJson(item);
+			    } else {
+				    if (typeof(obj[nodeName].push) == "undefined") {
+					    var old = obj[nodeName];
+					    obj[nodeName] = [];
+					    obj[nodeName].push(old);
+				    }
+				    obj[nodeName].push(xmlToJson(item));
+			    }
+		    }
+	    }
+	    return obj;
+        };
+
+        function uploadBlobOrFile(blobOrFile) {
+
+      
+            var files = this.filesToLoad;
+            var file = blobOrFile
+            var url = 'http://192.168.10.9:8080/https://upload.box.com/api/1.0/upload/rmjzoomowbs592lo73rsvmib936tvpwe/41826347334';
+            var xhr = new XMLHttpRequest();
+            var fd = new FormData();
+            xhr.responseType = 'document';
+
+
+            // Listen to the upload progress.
+            var progressBar = document.querySelector('progress');
+            xhr.upload.onprogress = function(e) {
+                //console.log("progress "+e.loaded);
+                if (e.lengthComputable) {
+                    progressBar.value = (e.loaded / e.total) * 100;
+                    progressBar.textContent = progressBar.value; // Fallback.
+                }
+            };
+
+
+            xhr.open("POST", url, true);
+            xhr.onload = function () {
+            if (xhr.readyState === xhr.DONE) {
+                 if (xhr.status === 200) {
+                     console.log("uploaded");
+                      //console.log(xhr.response);
+                         //console.log(xhr.responseXML);
+                         var messages = document.getElementById("messages");
+                         jsonResult=xmlToJson(xhr.responseXML);
+                         //console.log(jsonResult);
+                    messages.innerHTML="Fichero subido <a href='https://vicomtech.app.box.com/file/"+jsonResult.response.files.file["@attributes"].id+"'target='_blank'>Fichero</a>";
+
+                          }
+                 }
+            };
+
+            fd.append("file", file);
+            xhr.send(fd);
+        
+        }
+
+    </script>
+</head>
+<body>
+    <input id="filePicker" type="file" name="Package" accept="*"/>
+    <br />
+    <progress min="0" max="100" value="0">0% complete</progress>
+    <br />
+    <button title="upload" 
+            onclick="if (filePicker.files[0]) uploadBlobOrFile(filePicker.files[0])">
+        <span>Upload</span>
+    </button>
+    <div id="messages"></div>
+</html> 
